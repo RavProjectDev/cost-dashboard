@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@layer base {
+  body {
+    @apply font-sans text-tabler-text antialiased;
+    background-color: #f4f6fb;
+  }
+
+  * {
+    @apply border-tabler-border;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-xl border border-tabler-border shadow-sm;
+  }
+
+  .stat-card {
+    @apply card p-5;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium;
+  }
+}
