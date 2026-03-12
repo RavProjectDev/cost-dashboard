@@ -13,6 +13,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@google-cloud/bigquery": "^8.1.1",
     "@prisma/client": "^5.22.0",
     "@tabler/icons-react": "^3.26.0",
     "clsx": "^2.1.1",

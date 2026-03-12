@@ -1,19 +1,37 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { adapters } from '@/lib/cost/adapters/registry';
 import { prisma } from '@/lib/prisma';
 
 /**
  * POST /api/costs/sync
  *
- * Calls all registered adapters, fetches costs for the last 24 hours,
- * and upserts them into cost_events. Returns a summary of what was inserted.
+ * Calls all registered adapters, fetches costs for the given range,
+ * and inserts them into cost_events. Returns a summary of what was inserted.
  *
- * Intentionally simple — no queues, no background workers.
- * Call this from a cron job or manually as needed.
+ * Optional JSON body params:
+ *   start  — ISO date string (default: 24h ago)
+ *   end    — ISO date string (default: now)
+ *
+ * Example — sync last 7 days:
+ *   curl -X POST http://localhost:3000/api/costs/sync \
+ *     -H "Content-Type: application/json" \
+ *     -d '{"start":"2026-02-25","end":"2026-03-04"}'
  */
-export async function POST() {
-  const end = new Date();
-  const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+export async function POST(req: NextRequest) {
+  let body: { start?: string; end?: string } = {};
+  try {
+    const text = await req.text();
+    if (text) body = JSON.parse(text);
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const end = body.end ? new Date(body.end) : new Date();
+  const start = body.start ? new Date(body.start) : new Date(end.getTime() - 24 * 60 * 60 * 1000);
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return NextResponse.json({ ok: false, error: 'Invalid start or end date' }, { status: 400 });
+  }
 
   try {
     const results = await Promise.allSettled(
