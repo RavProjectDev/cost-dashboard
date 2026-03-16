@@ -10,6 +10,8 @@ interface Props {
   avgDailySpend: number;
   topVendor: { vendor: string; total: number } | null;
   eventCount: number;
+  periodLabel: string;
+  days: number;
 }
 
 function formatUsd(amount: number) {
@@ -48,13 +50,13 @@ function StatCard({
   );
 }
 
-export function StatsCards({ totalSpend, avgDailySpend, topVendor, eventCount }: Props) {
+export function StatsCards({ totalSpend, avgDailySpend, topVendor, eventCount, periodLabel, days }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       <StatCard
-        title="Total Spend (7d)"
+        title={`Total Spend (${periodLabel})`}
         value={formatUsd(totalSpend)}
-        subtitle="Last 7 days across all vendors"
+        subtitle={`Last ${days} days across all vendors`}
         icon={IconCurrencyDollar}
         accent="bg-blue-600"
       />
@@ -68,14 +70,14 @@ export function StatsCards({ totalSpend, avgDailySpend, topVendor, eventCount }:
       <StatCard
         title="Top Vendor"
         value={topVendor ? topVendor.vendor.toUpperCase() : '—'}
-        subtitle={topVendor ? `${formatUsd(topVendor.total)} this week` : 'No data'}
+        subtitle={topVendor ? `${formatUsd(topVendor.total)} this period` : 'No data'}
         icon={IconCloudComputing}
         accent="bg-emerald-600"
       />
       <StatCard
         title="Cost Events"
         value={eventCount.toLocaleString()}
-        subtitle="Events recorded (7d)"
+        subtitle={`Events recorded (${periodLabel})`}
         icon={IconActivity}
         accent="bg-orange-500"
       />

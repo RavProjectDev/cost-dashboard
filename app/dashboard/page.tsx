@@ -6,29 +6,58 @@ import {
   getEventCount,
   getTopVendor,
   getRecentEvents,
+  getVendors,
+  type QueryFilter,
 } from '@/lib/cost/queries';
 import { StatsCards } from './_components/StatsCards';
 import { SpendByVendorChart } from './_components/SpendByVendorChart';
 import { SpendOverTimeChart } from './_components/SpendOverTimeChart';
 import { RecentEventsTable } from './_components/RecentEventsTable';
 import { SyncButton } from './_components/SyncButton';
+import { FilterBar } from './_components/FilterBar';
+import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 
-const DAYS = 7;
+const PRESET_DAYS: Record<string, number> = {
+  '7d': 7,
+  '30d': 30,
+  '90d': 90,
+  '6m': 180,
+  '1y': 365,
+};
 
-export default async function DashboardPage() {
-  const [totalSpend, spendByVendor, spendOverTime, eventCount, topVendor, recentEvents] =
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function DashboardPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const preset = (params.preset as string) ?? '30d';
+  const vendorParam = (params.vendor as string) || undefined;
+
+  const days = PRESET_DAYS[preset] ?? 30;
+
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  const start = new Date();
+  start.setDate(start.getDate() - days);
+  start.setHours(0, 0, 0, 0);
+
+  const filter: QueryFilter = { start, end, vendor: vendorParam };
+
+  const [totalSpend, spendByVendor, spendOverTime, eventCount, topVendor, recentEvents, vendors] =
     await Promise.all([
-      getTotalSpend(DAYS),
-      getSpendByVendor(DAYS),
-      getSpendOverTime(DAYS),
-      getEventCount(DAYS),
-      getTopVendor(DAYS),
-      getRecentEvents(50),
+      getTotalSpend(filter),
+      getSpendByVendor(filter),
+      getSpendOverTime(filter),
+      getEventCount(filter),
+      getTopVendor(filter),
+      getRecentEvents(filter, 200),
+      getVendors(),
     ]);
 
-  const avgDailySpend = totalSpend / DAYS;
+  const avgDailySpend = totalSpend / days;
 
   return (
     <div className="min-h-screen bg-tabler-bg">
@@ -43,7 +72,9 @@ export default async function DashboardPage() {
               <h1 className="text-sm font-semibold text-tabler-text leading-tight">
                 Cost Dashboard
               </h1>
-              <p className="text-xs text-tabler-muted">Last {DAYS} days</p>
+              <p className="text-xs text-tabler-muted">
+                {vendorParam ? vendorParam.toUpperCase() : 'All vendors'} · Last {days} days
+              </p>
             </div>
           </div>
           <SyncButton />
@@ -51,19 +82,26 @@ export default async function DashboardPage() {
       </header>
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+      <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+        {/* Filter bar */}
+        <Suspense>
+          <FilterBar vendors={vendors} />
+        </Suspense>
+
         {/* KPI row */}
         <StatsCards
           totalSpend={totalSpend}
           avgDailySpend={avgDailySpend}
           topVendor={topVendor}
           eventCount={eventCount}
+          periodLabel={preset}
+          days={days}
         />
 
         {/* Charts row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <SpendByVendorChart data={spendByVendor} />
-          <SpendOverTimeChart data={spendOverTime} />
+          <SpendOverTimeChart data={spendOverTime} periodLabel={preset} />
         </div>
 
         {/* Events table */}

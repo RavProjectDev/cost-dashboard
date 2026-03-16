@@ -1,8 +1,6 @@
 'use client';
 
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -14,18 +12,23 @@ import {
 
 interface Props {
   data: Array<{ day: string; total: number }>;
+  periodLabel: string;
 }
 
-function shortDate(iso: string) {
-  const [, month, day] = iso.split('-');
-  return `${parseInt(month)}/${parseInt(day)}`;
+function formatTick(iso: string, numDays: number): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  if (numDays > 90) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  return `${month}/${day}`;
 }
 
 function formatUsd(value: number) {
   return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function SpendOverTimeChart({ data }: Props) {
+export function SpendOverTimeChart({ data, periodLabel }: Props) {
   if (!data.length) {
     return (
       <div className="card p-6 flex items-center justify-center h-64 text-tabler-muted text-sm">
@@ -34,11 +37,20 @@ export function SpendOverTimeChart({ data }: Props) {
     );
   }
 
-  const display = data.map((d) => ({ ...d, day: shortDate(d.day) }));
+  const numDays = data.length;
+  // Show ~8-12 ticks regardless of range
+  const tickInterval = Math.max(0, Math.floor(numDays / 10) - 1);
+
+  const display = data.map((d) => ({
+    ...d,
+    label: formatTick(d.day, numDays),
+  }));
 
   return (
     <div className="card p-6">
-      <h2 className="text-sm font-semibold text-tabler-text mb-4">Spend Over Time (7d)</h2>
+      <h2 className="text-sm font-semibold text-tabler-text mb-4">
+        Spend Over Time ({periodLabel})
+      </h2>
       <ResponsiveContainer width="100%" height={240}>
         <AreaChart data={display} margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
           <defs>
@@ -49,10 +61,11 @@ export function SpendOverTimeChart({ data }: Props) {
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#e6e7e9" vertical={false} />
           <XAxis
-            dataKey="day"
-            tick={{ fontSize: 12, fill: '#6c757d' }}
+            dataKey="label"
+            tick={{ fontSize: 11, fill: '#6c757d' }}
             tickLine={false}
             axisLine={false}
+            interval={tickInterval}
           />
           <YAxis
             tick={{ fontSize: 12, fill: '#6c757d' }}
@@ -62,6 +75,7 @@ export function SpendOverTimeChart({ data }: Props) {
           />
           <Tooltip
             formatter={(value: number) => [formatUsd(value), 'Total Spend']}
+            labelFormatter={(label) => `Date: ${label}`}
             contentStyle={{
               border: '1px solid #e6e7e9',
               borderRadius: '8px',
