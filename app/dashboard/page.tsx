@@ -13,8 +13,7 @@ import { SpendOverTimeChart } from './_components/SpendOverTimeChart';
 import { RecentEventsTable } from './_components/RecentEventsTable';
 import { SyncButton } from './_components/SyncButton';
 
-// Revalidate every 60 seconds so cost data stays reasonably fresh
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 const DAYS = 7;
 
